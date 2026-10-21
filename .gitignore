@@ -56,6 +56,12 @@ docker-data/
 # Jupyter
 .ipynb_checkpoints/
 
+# Frontend
+node_modules/
+.next/
+out/
+frontend/.env*.local
+
 # Misc
 *.swp
 *.swo

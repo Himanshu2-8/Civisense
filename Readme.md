@@ -534,50 +534,62 @@ Generates:
 
 # Running Locally
 
-## Backend
+## Option 1: Unified Quickstart (Recommended)
+
+Run both the backend and frontend simultaneously with a single command:
 
 ```bash
-cd backend
-
-pip install -r requirements.txt
-
-python -m spacy download en_core_web_sm
-
-uvicorn app.main:app --reload
+./start.sh
 ```
 
-Backend:
-
-```text
-http://localhost:8000
-```
+* **Frontend Dashboard**: [http://localhost:3000](http://localhost:3000)
+* **Backend API**: [http://localhost:8000](http://localhost:8000)
+* **Interactive API Docs (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-## Frontend
+## Option 2: Running Independently
+
+### Backend
+
+```bash
+cd backend
+uv venv .venv && source .venv/bin/activate
+uv pip install -r requirements.txt
+uvicorn app.main:app --port 8000 --reload
+```
+
+Backend API: `http://localhost:8000`
+
+---
+
+### Frontend
 
 ```bash
 cd frontend
-
 npm install
-
 npm run dev
 ```
 
-Frontend:
-
-```text
-http://localhost:3000
-```
+Frontend: `http://localhost:3000`
 
 ---
 
 # Environment Variables
 
-Backend `.env`
+Backend `.env` (optional for local demo testing, required for Groq Llama 3.3):
 
 ```env
+DATABASE_URL=sqlite:///./civisense.db
 GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama-3.3-70b-versatile
+GROQ_TEMPERATURE=0.2
+```
+
+Frontend `.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 ```
 
 Frontend `.env.local`

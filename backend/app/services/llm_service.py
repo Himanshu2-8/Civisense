@@ -37,12 +37,13 @@ class LLMService:
         return bool(settings.GROQ_API_KEY and settings.GROQ_API_KEY.strip())
 
     @staticmethod
-    def _get_client() -> Optional[ChatGroq]:
+    def _get_client(model_override: Optional[str] = None) -> Optional[ChatGroq]:
         if not LLMService.is_groq_available():
             return None
+        model_name = model_override or settings.GROQ_MODEL or "openai/gpt-oss-120b"
         try:
             return ChatGroq(
-                model=settings.GROQ_MODEL,
+                model=model_name,
                 temperature=settings.GROQ_TEMPERATURE,
                 api_key=SecretStr(settings.GROQ_API_KEY),
             )
@@ -50,11 +51,43 @@ class LLMService:
             return None
 
     @staticmethod
-    def _invoke(client: ChatGroq, prompt: str) -> str:
-        message = HumanMessage(content=prompt)
-        response = client.invoke([message])
-        content = getattr(response, "content", None)
-        return str(content) if content is not None else str(response)
+    def _invoke(client: Optional[ChatGroq], prompt: str) -> str:
+        # If a specific client is provided, try it first
+        if client is not None:
+            try:
+                message = HumanMessage(content=prompt)
+                response = client.invoke([message])
+                content = getattr(response, "content", None)
+                if content:
+                    return str(content)
+            except Exception:
+                pass
+
+        # Try candidate models available on Groq as fallback
+        candidate_models = [
+            settings.GROQ_MODEL,
+            "openai/gpt-oss-120b",
+            "openai/gpt-oss-20b",
+            "qwen/qwen3.8-27b",
+        ]
+        seen = set()
+        for model in candidate_models:
+            if not model or model in seen:
+                continue
+            seen.add(model)
+            alt_client = LLMService._get_client(model_override=model)
+            if alt_client is None:
+                continue
+            try:
+                message = HumanMessage(content=prompt)
+                response = alt_client.invoke([message])
+                content = getattr(response, "content", None)
+                if content:
+                    return str(content)
+            except Exception:
+                continue
+
+        raise RuntimeError("Groq LLM invocation failed across all candidate models")
 
     @staticmethod
     async def extract_comments(chunks: list[dict]) -> list[dict]:
